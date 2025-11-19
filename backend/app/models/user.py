@@ -19,4 +19,7 @@ class User(Base):
     domains = relationship("Domain", back_populates="user", cascade="all, delete-orphan")
     daily_logs = relationship("DailyLog", back_populates="user", cascade="all, delete-orphan")
     income_entries = relationship("IncomeEntry", back_populates="user", cascade="all, delete-orphan")
+    weekly_logs = relationship("WeeklyLog", back_populates="user", cascade="all, delete-orphan")
+    monthly_logs = relationship("MonthlyLog", back_populates="user", cascade="all, delete-orphan")
+    yearly_logs = relationship("YearlyLog", back_populates="user", cascade="all, delete-orphan")
 
