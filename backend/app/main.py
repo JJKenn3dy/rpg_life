@@ -89,6 +89,16 @@ def root_page():
             Укажи метод, относительный путь (например, <code>/api/v1/users/by-tg/123</code>)
             и JSON-тело запроса. Сайт отправит запрос на этот же сервер и покажет ответ.
         </p>
+        <h2>Гайд по ручному тестированию</h2>
+        <ol>
+            <li>POST <code>/api/v1/users/register</code> — зарегистрируй тестового пользователя.</li>
+            <li>POST <code>/api/v1/domains/</code> с <code>tg_id</code> пользователя — добавь домен навыка.</li>
+            <li>POST <code>/api/v1/domains/add-xp</code> — начисли домену очки и проверь рост уровней.</li>
+            <li>
+                POST <code>/api/v1/daily-logs/</code> → затем GET <code>/api/v1/daily-logs/latest</code> —
+                удостоверься, что <code>self_rating</code> рассчитан и возвращается вместе с кратким summary.
+            </li>
+        </ol>
         <label for=\"method\">Метод</label>
         <select id=\"method\">
             <option>GET</option>

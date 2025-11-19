@@ -26,6 +26,20 @@ def _calculate_streak_length(
     return 1
 
 
+def _auto_self_rating(payload: DailyLogCreate) -> int:
+    """Calculate a deterministic rating based on the payload fields."""
+
+    normalized_score = max(0, min(payload.day_score, 100))
+    base_rating = (normalized_score + 5) // 10  # round to closest 10
+
+    bonus = int(payload.xp_pulse_sent) + int(payload.xp_pulse_received)
+    if payload.xp_pulse:
+        bonus += 1
+
+    rating = base_rating + bonus
+    return max(1, min(10, rating))
+
+
 def create_daily_log(db: Session, user: User, payload: DailyLogCreate) -> DailyLog:
     log_date = _resolve_log_date(payload)
 
@@ -37,14 +51,19 @@ def create_daily_log(db: Session, user: User, payload: DailyLogCreate) -> DailyL
     )
 
     streak_length = _calculate_streak_length(previous_log, log_date)
+    self_rating = payload.self_rating
+    if self_rating is None:
+        self_rating = _auto_self_rating(payload)
 
     log = DailyLog(
         user_id=user.id,
         day_score=payload.day_score,
         notes=payload.notes,
+        summary=payload.summary,
         xp_pulse_sent=payload.xp_pulse_sent,
         xp_pulse_received=payload.xp_pulse_received,
         xp_pulse=payload.xp_pulse,
+        self_rating=self_rating,
         log_date=log_date,
         streak_length=streak_length,
     )
