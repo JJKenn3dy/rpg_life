@@ -5,6 +5,17 @@
 from fastapi.testclient import TestClient
 
 
+def _expected_self_rating(payload: dict) -> int:
+    normalized_score = max(0, min(payload["day_score"], 100))
+    base = (normalized_score + 5) // 10
+    bonus = int(payload.get("xp_pulse_sent", False)) + int(
+        payload.get("xp_pulse_received", False)
+    )
+    if payload.get("xp_pulse"):
+        bonus += 1
+    return max(1, min(10, base + bonus))
+
+
 def test_full_user_and_domain_flow(client: TestClient):
     tg_id = "tg-777"
     username = "tester"
@@ -64,3 +75,28 @@ def test_full_user_and_domain_flow(client: TestClient):
     domain_state = domains_after_xp.json()[0]
     assert domain_state["current_level"] == 2
     assert domain_state["current_xp"] == 100
+
+    log_payload = {
+        "day_score": 73,
+        "notes": "Выполнил все тренировки",
+        "summary": "Успешный день",
+        "xp_pulse_sent": True,
+        "xp_pulse_received": False,
+        "xp_pulse": True,
+    }
+    expected_rating = _expected_self_rating(log_payload)
+
+    created_log = client.post(
+        "/api/v1/daily-logs/",
+        params={"tg_id": tg_id},
+        json=log_payload,
+    )
+    assert created_log.status_code == 200, created_log.text
+    log = created_log.json()
+    assert log["self_rating"] == expected_rating
+
+    latest_log = client.get("/api/v1/daily-logs/latest", params={"tg_id": tg_id})
+    assert latest_log.status_code == 200
+    latest_data = latest_log.json()
+    assert latest_data["self_rating"] == expected_rating
+    assert latest_data["summary"] == log_payload["summary"]
