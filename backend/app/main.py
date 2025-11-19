@@ -6,6 +6,7 @@ from backend.app.db.base import Base
 # импорт моделей, чтобы SQLAlchemy видел их перед create_all
 from backend.app.models import user
 from backend.app.models import domain   # или domains — как у тебя называется
+from backend.app.models import daily_log
 
 app = FastAPI()
 

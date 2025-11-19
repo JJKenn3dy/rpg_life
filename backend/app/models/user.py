@@ -15,3 +15,4 @@ class User(Base):
     global_xp = Column(Integer, default=0)
 
     domains = relationship("Domain", back_populates="user")
+    daily_logs = relationship("DailyLog", back_populates="user")
