@@ -1,4 +1,8 @@
 """/daily command handler."""
+from __future__ import annotations
+
+import asyncio
+
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
@@ -17,12 +21,16 @@ async def cmd_daily(message: Message) -> None:
         return
 
     try:
-        logs = await api_client.get_daily_logs(message.from_user.id)
+        logs, finances = await asyncio.gather(
+            api_client.get_daily_logs(message.from_user.id),
+            api_client.get_finances(message.from_user.id),
+        )
     except ApiClientError as exc:
         await message.answer(f"Не удалось получить ежедневник: {exc}")
         return
 
     lines = ["<b>Ежедневник</b>"]
+    has_logs = False
     for log in logs:
         date = log.get("date", "—")
         mood = log.get("mood")
@@ -33,8 +41,35 @@ async def cmd_daily(message: Message) -> None:
         if text:
             entry += f"\n{text}"
         lines.append(entry)
+        has_logs = True
 
-    if len(lines) == 1:
+    if not has_logs:
         lines.append("Записей пока нет. Попробуй добавить заметку в приложении.")
+
+    lines.append("")
+    lines.append("<b>Финансы</b>")
+    has_finances = False
+    for record in finances:
+        date = record.get("date", "—")
+        amount = record.get("amount")
+        currency = record.get("currency", "")
+        category = record.get("category")
+        note = record.get("note", "")
+
+        entry = f"• {date}"
+        if amount is not None:
+            amount_str = str(amount)
+            if currency:
+                amount_str += f" {currency}"
+            entry += f" | сумма: {amount_str}"
+        if category:
+            entry += f" | категория: {category}"
+        if note:
+            entry += f"\n{note}"
+        lines.append(entry)
+        has_finances = True
+
+    if not has_finances:
+        lines.append("Финансовых записей пока нет. Добавь траты в приложении.")
 
     await message.answer("\n\n".join(lines), reply_markup=main_menu_keyboard())
