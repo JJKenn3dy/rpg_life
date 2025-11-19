@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -166,3 +167,51 @@ def test_full_user_and_domain_flow(client: TestClient):
     incomes = client.get("/api/v1/finances/", params={"tg_id": tg_id})
     assert incomes.status_code == 200
     assert len(incomes.json()) == 2
+
+    # 8. Создаём серию дневников в пределах одной недели и запрашиваем сводку.
+    base_week_start = date(2023, 5, 1)  # Понедельник
+    xp_values = [10, 20, 0]
+    ratings = [6, 8, 5]
+    incomes_amounts = [100, 0, 250]
+
+    for idx, xp in enumerate(xp_values):
+        payload = {
+            "log_date": str(base_week_start + timedelta(days=idx)),
+            "summary": f"Log #{idx}",
+            "accomplishments": "",
+            "blockers": "",
+            "rating": ratings[idx],
+            "xp_updates": [{"domain_id": domain["id"], "xp": xp}] if xp else [],
+            "finances": [],
+        }
+        if incomes_amounts[idx]:
+            payload["finances"].append(
+                {
+                    "amount": incomes_amounts[idx],
+                    "source": f"Bonus {idx}",
+                    "description": "auto",
+                }
+            )
+
+        created_log = client.post(
+            "/api/v1/daily-logs/",
+            params={"tg_id": tg_id},
+            json=payload,
+        )
+        assert created_log.status_code == 200, created_log.text
+
+    weekly = client.get("/api/v1/weekly-logs", params={"tg_id": tg_id})
+    assert weekly.status_code == 200
+    weekly_list = weekly.json()
+    target_week = None
+    expected_week_start = str(base_week_start)
+    for entry in weekly_list:
+        if entry["period_start"] == expected_week_start:
+            target_week = entry
+            break
+    assert target_week, weekly_list
+    assert target_week["log_count"] == len(xp_values)
+    assert target_week["total_xp"] == sum(xp_values)
+    assert target_week["average_rating"] == pytest.approx(sum(ratings) / len(ratings), rel=1e-3)
+    assert target_week["xp_pulse_count"] == 2  # только два лога добавили XP
+    assert target_week["total_income"] == sum(incomes_amounts)
