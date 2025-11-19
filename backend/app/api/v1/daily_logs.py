@@ -6,6 +6,7 @@ from backend.app.core.deps import get_db
 from backend.app.models.daily_log import DailyLog
 from backend.app.models.user import User
 from backend.app.schemas.daily_log import DailyLogCreate, DailyLogRead
+from backend.app.services.daily_logs import create_daily_log as create_daily_log_service
 
 router = APIRouter()
 
@@ -24,11 +25,7 @@ def create_daily_log(
     db: Session = Depends(get_db),
 ):
     user = _get_user(db, tg_id)
-    log = DailyLog(user_id=user.id, **payload.model_dump())
-    db.add(log)
-    db.commit()
-    db.refresh(log)
-    return log
+    return create_daily_log_service(db=db, user=user, payload=payload)
 
 
 @router.get("/", response_model=list[DailyLogRead])
@@ -37,7 +34,7 @@ def list_daily_logs(tg_id: str, db: Session = Depends(get_db)):
     return (
         db.query(DailyLog)
         .filter(DailyLog.user_id == user.id)
-        .order_by(desc(DailyLog.created_at))
+        .order_by(desc(DailyLog.log_date))
         .all()
     )
 
@@ -48,7 +45,7 @@ def get_latest_daily_log(tg_id: str, db: Session = Depends(get_db)):
     log = (
         db.query(DailyLog)
         .filter(DailyLog.user_id == user.id)
-        .order_by(desc(DailyLog.created_at))
+        .order_by(desc(DailyLog.log_date))
         .first()
     )
     if not log:
