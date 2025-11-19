@@ -1,7 +1,9 @@
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
 from backend.app.db.base import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -14,4 +16,7 @@ class User(Base):
     current_global_level = Column(Integer, default=1)
     global_xp = Column(Integer, default=0)
 
-    domains = relationship("Domain", back_populates="user")
+    domains = relationship("Domain", back_populates="user", cascade="all, delete-orphan")
+    daily_logs = relationship("DailyLog", back_populates="user", cascade="all, delete-orphan")
+    income_entries = relationship("IncomeEntry", back_populates="user", cascade="all, delete-orphan")
+
