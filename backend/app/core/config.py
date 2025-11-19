@@ -1,6 +1,12 @@
-from pydantic_settings import BaseSettings
+import os
 
-class Settings(BaseSettings):
+from dotenv import load_dotenv
+from pydantic import BaseModel, ConfigDict
+
+load_dotenv()
+
+
+class Settings(BaseModel):
     PROJECT_NAME: str = "RPG Life API"
     API_V1_STR: str = "/api/v1"
 
@@ -11,10 +17,18 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4.1-mini"
     OPENAI_BASE_URL: str = "https://api.openai.com/v1/chat/completions"
 
-    class Config:
-        env_file = ".env"
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-settings = Settings()
+
+def _env_values() -> dict[str, str]:
+    available = {}
+    for field in Settings.model_fields:
+        if field in os.environ:
+            available[field] = os.environ[field]
+    return available
+
+
+settings = Settings(**_env_values())
 
 if not settings.SQLALCHEMY_DATABASE_URI:
     if settings.MODE == "debug":
