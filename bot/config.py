@@ -1,24 +1,19 @@
-from pydantic import BaseSettings
+"""Configuration for the Telegram bot."""
+from __future__ import annotations
+
+from pydantic import AnyHttpUrl, BaseSettings, SecretStr
+
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "RPG Life API"
-    API_V1_STR: str = "/api/v1"
+    """Settings that are loaded from the ``.env`` file."""
 
-    MODE: str = "debug"  # debug или prod
-    SQLALCHEMY_DATABASE_URI: str | None = None
-
-    OPENAI_API_KEY: str | None = None
-    OPENAI_MODEL: str = "gpt-4.1-mini"
-    OPENAI_BASE_URL: str = "https://api.openai.com/v1/chat/completions"
+    BOT_TOKEN: SecretStr
+    BACKEND_URL: AnyHttpUrl
+    HTTP_TIMEOUT: float = 10.0
 
     class Config:
         env_file = ".env"
+        case_sensitive = False
+
 
 settings = Settings()
-
-# если строка подключения не задана, а режим debug – включаем SQLite
-if not settings.SQLALCHEMY_DATABASE_URI:
-    if settings.MODE == "debug":
-        settings.SQLALCHEMY_DATABASE_URI = "sqlite:///./debug.db"
-    else:
-        raise RuntimeError("SQLALCHEMY_DATABASE_URI must be provided in prod mode")
